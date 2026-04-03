@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { supabaseAdmin } from '@/lib/db'
 import { getThreadsForDashboard, getDashboardCounts } from '@/lib/db/queries/threads'
+import { rateLimitUser } from '@/lib/rate-limit'
 import type { DashboardView } from '@/types'
 
 const VALID_VIEWS: DashboardView[] = ['urgent', 'needs_reply', 'waiting', 'follow_ups', 'all']
@@ -10,6 +11,14 @@ export async function GET(request: NextRequest) {
   const { userId: clerkUserId } = await auth()
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const rl = rateLimitUser(clerkUserId, 'threads', { limit: 120, windowSeconds: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    )
   }
 
   const { data: user } = await supabaseAdmin

@@ -115,7 +115,12 @@ export function Sidebar({ counts }: SidebarProps) {
         {/* Search */}
         <Link
           href="/search"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-[#888] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] transition-colors"
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors border-l-2',
+            pathname === '/search'
+              ? 'bg-indigo-600/20 text-[#F5F5F5] border-indigo-500'
+              : 'text-[#888] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] border-transparent'
+          )}
         >
           <Search className="w-4 h-4" />
           Search
@@ -128,7 +133,12 @@ export function Sidebar({ counts }: SidebarProps) {
         <div className="px-2 py-2 border-t border-[#2A2A2A]">
           <Link
             href="/settings"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-[#888] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] transition-colors"
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors border-l-2',
+              pathname === '/settings'
+                ? 'bg-indigo-600/20 text-[#F5F5F5] border-indigo-500'
+                : 'text-[#888] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] border-transparent'
+            )}
           >
             <Settings className="w-4 h-4" />
             Settings
