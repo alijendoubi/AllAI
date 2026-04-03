@@ -1,19 +1,20 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/db'
 import { ConnectGmail } from '@/components/onboarding/ConnectGmail'
 import { SyncProgress } from '@/components/onboarding/SyncProgress'
 import { DashboardShell } from './(dashboard)/DashboardShell'
+import LandingPage from './landing/page'
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ syncing?: string; error?: string }>
+  searchParams: Promise<{ syncing?: string; error?: string; deleted?: string }>
 }) {
   const { userId: clerkUserId } = await auth()
 
+  // Not signed in — show marketing landing page
   if (!clerkUserId) {
-    redirect('/sign-in')
+    return <LandingPage />
   }
 
   const params = await searchParams
@@ -26,16 +27,9 @@ export default async function HomePage({
     .maybeSingle()
 
   if (!existingUser) {
-    // Create user record from Clerk data
-    const { data: clerkUser } = await supabaseAdmin
+    await supabaseAdmin
       .from('users')
       .insert({ clerk_user_id: clerkUserId, email: clerkUserId + '@pending.local' })
-      .select('id')
-      .single()
-
-    if (!clerkUser) {
-      return <ConnectGmail />
-    }
   }
 
   const { data: user } = await supabaseAdmin

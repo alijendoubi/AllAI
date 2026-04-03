@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DraftReply } from './DraftReply'
 import { PriorityBadge } from './PriorityBadge'
+import { SnoozePicker } from './SnoozePicker'
 import { formatRelativeTime } from '@/lib/utils'
 import {
   CheckCheck,
@@ -28,6 +29,8 @@ export function ThreadPanel({ thread: selectedThread }: ThreadPanelProps) {
   const [summaryExpanded, setSummaryExpanded] = useState(true)
   const [messagesExpanded, setMessagesExpanded] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showSnoozePicker, setShowSnoozePicker] = useState(false)
+  const snoozeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!selectedThread) {
@@ -42,20 +45,13 @@ export function ThreadPanel({ thread: selectedThread }: ThreadPanelProps) {
       .finally(() => setLoading(false))
   }, [selectedThread?.id])
 
-  async function handleAction(action: 'resolve' | 'snooze') {
+  async function handleAction(action: 'resolve') {
     if (!thread) return
     setActionLoading(action)
     try {
       if (action === 'resolve') {
         await fetch(`/api/threads/${thread.id}/resolve`, { method: 'POST' })
         setThread((t) => t ? { ...t, status: 'resolved' } : null)
-      } else if (action === 'snooze') {
-        await fetch(`/api/threads/${thread.id}/snooze`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ duration: 'tomorrow' }),
-        })
-        setThread((t) => t ? { ...t, status: 'snoozed' } : null)
       }
     } catch (err) {
       console.error('Action failed:', err)
@@ -110,7 +106,7 @@ export function ThreadPanel({ thread: selectedThread }: ThreadPanelProps) {
             )}
           </div>
           {/* Action buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
             <Button
               variant="outline"
               size="sm"
@@ -120,15 +116,27 @@ export function ThreadPanel({ thread: selectedThread }: ThreadPanelProps) {
               <CheckCheck className="w-3.5 h-3.5 mr-1.5" />
               Resolve
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleAction('snooze')}
-              disabled={!!actionLoading || thread.status === 'snoozed'}
-            >
-              <Bell className="w-3.5 h-3.5 mr-1.5" />
-              Snooze
-            </Button>
+            <div ref={snoozeRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSnoozePicker((v) => !v)}
+                disabled={thread.status === 'snoozed'}
+              >
+                <Bell className="w-3.5 h-3.5 mr-1.5" />
+                Snooze
+              </Button>
+              {showSnoozePicker && (
+                <SnoozePicker
+                  threadId={thread.id}
+                  onClose={() => setShowSnoozePicker(false)}
+                  onSnoozed={() => {
+                    setShowSnoozePicker(false)
+                    setThread((t) => t ? { ...t, status: 'snoozed' } : null)
+                  }}
+                />
+              )}
+            </div>
             <Button variant="outline" size="sm">
               <Star className="w-3.5 h-3.5 mr-1.5" />
               VIP

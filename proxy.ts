@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/oauth/gmail/callback(.*)",
   "/privacy",
   "/terms",
+  "/account/delete",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

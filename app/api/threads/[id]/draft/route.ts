@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/db'
 import { getThreadWithDetails } from '@/lib/db/queries/threads'
 import { getRecentOutboundMessages } from '@/lib/db/queries/messages'
 import { generateDraftReply } from '@/lib/ai'
+import { rateLimitUser } from '@/lib/rate-limit'
 
 export async function POST(
   request: NextRequest,
@@ -13,6 +14,15 @@ export async function POST(
   const { userId: clerkUserId } = await auth()
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // 10 AI drafts per minute per user
+  const rl = rateLimitUser(clerkUserId, 'draft', { limit: 10, windowSeconds: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    )
   }
 
   const { data: user } = await supabaseAdmin
